@@ -1,7 +1,7 @@
 # DynamoDB helpers
 
 Currently only the scan finder is implemented. It will issue multiple scans for each 1MB and combine them into a single result.
-Dataset returned is a plain ruby hash which gives you significant speed-up if you are only interested in reading the data.
+Dataset returned is a plain ruby hash which gives you significant speed-up over aws-record gem if you are only interested in reading the data.
 
 ## Installation
 
@@ -23,7 +23,10 @@ Or install it yourself as:
 
 
 ```ruby
-# extend your class and provide table_name method
+# Instantiate the client which will require table_name option on each call
+DynamoClient = Class.new.extend(DynamodbHelpers)
+
+# or extend your class and provide table_name method
 class User
   extend DynamodbHelpers
 
@@ -34,7 +37,11 @@ end
 
 # Find by multiple keys:
 User.scan_and_find_by(name: 'Joe', email: 'joe@example.com')
-# => {"name"  => "Joe", "email" => "joe@example.com", ... other attributes}
+# => [{"name"  => "Joe", "email" => "joe@example.com", ... other attributes}, ...]
+
+# Return specific fields:
+User.scan_and_find_by({name: 'Joe', email: 'joe@example.com'}, select: [:email])
+# => [{"email" => "joe@example.com"}, ...]
 
 # Find by scanning in parallel with multiple threads:
 User.scan_and_find_by({name: 'Joe'}, segments: 5)

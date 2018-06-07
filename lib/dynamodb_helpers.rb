@@ -1,11 +1,15 @@
 require "dynamodb_helpers/version"
 
 module DynamodbHelpers
-  def scan_and_find_by(query_opts, opts = {segments: false})
-    query = {table_name: table_name, select: 'ALL_ATTRIBUTES', scan_filter: {}}
+  def scan_and_find_by(query_opts, opts = {segments: false, select: false, table_name: false})
+
+    query = {table_name: opts[:table_name] ? opts[:table_name] : self.table_name, select: 'ALL_ATTRIBUTES', scan_filter: {}}
 
     query_opts.each do | key, value |
-      if(!value.nil?)
+      if value.nil?
+        # raise "Detected nil value for #{key}"
+        return []
+      else
         query[:scan_filter].merge!(key.to_s => {:comparison_operator => "EQ", :attribute_value_list => [value]})
       end
     end
@@ -13,6 +17,9 @@ module DynamodbHelpers
     if query[:scan_filter].length >= 2
       query.merge!(:conditional_operator => "AND")
     end
+
+    # field selection
+    query.merge!(select: "SPECIFIC_ATTRIBUTES", attributes_to_get: opts[:select]) if opts[:select]
 
     return scan_in_parallel(query, opts) if opts[:segments]
     return scan_sequentialy(query)
